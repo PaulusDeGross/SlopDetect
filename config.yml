@@ -1,0 +1,54 @@
+project:
+    experiment_name: "roberta-v1-baseline"          # The label for this specific run
+    output_dir: "./out"                             # Where the trained model files (.bin) will be saved
+    checkpoint:
+        save: "epoch"                               # Save a backup of the model at the end of every epoch
+        save_total_limit: 2                         # Only keep the last 2 backups to save disk space (delete older ones)
+        best_model_metric: "f1_score"               # The score used to decide which model is the "winner" (F1 is better thanAccuracy for imbalanced data)
+    logging:
+        steps: 50                                   # Print stats (loss/accuracy) to the console every 50 batches
+        wandb: False                                # "Weights & Biases" - a cloud dashboard tool (False means off)
+        tensorboard: True                           # A local dashboard tool to visualize loss curves
+
+data:
+    dataset_source: "local"                         # The ID of the dataset on Hugging Face (or "local" if using your own files)
+    custom_preparations:
+        enabled: True
+        command: "python ./data/download_raid.py"
+        skip_if_exists: "./data/raw/train.csv"
+    file_paths:                                     # Fallback paths if you aren't using Hugging Face hub.
+        train: "./data/train"
+        test: "./data/test"
+        validation: "./data/validation"
+    column_mapping:
+        data: ""                                    # The column containing the text
+        label: ""                                   # The column containing the answer
+    text_preprocessing: False                       # Whether to run cleaning functions (lower case, remove html) before training
+    tokenizer:
+        max_sequence_length: 512                    # ´Maximum number of tokens the model can read at once
+        padding: "max_length"                       # If text is shorter than 512, add empty "pad" tokens to reach 512
+    split_ratio:                                    # How to divide the data
+        train: 0.75                                 # 75% used for learning
+        test: 0.15                                  # 15% used for final evaluation
+        validation: 0.1                             # 10% used to tune hyperparameters during training
+    data_loader_parameters:
+        batch_size: 32                              # How many text samples the GPU processes in one go.
+        n_workers: 0                                # How many CPU cores prepare data. Keep 0 on windows for stability
+
+model:
+    huggingface_id: "microsoft/deberta-v3-base"     # The pre-trained "brain" we are downloading to fine-tune
+    n_labels: 2                                     # Number of labels: Human (0) vs AI (1)
+    dropout_rate: 0.1                               # Randomly turns off 10% of neurons during training to stop the model from memorizing exact senteces
+    freeze_layers: 0                                # How many bottom layers to "lock", 0 means we retain the whole model
+    init_seed: 0                                    # Random starts are the same every time this is run
+
+training:
+    hyperparams:
+        learning_rate: 2e-5                         # The speed of learning. Too high = overshoot; too low = never learns
+        epochs: 3                                   # How many times the model sees the entire dataset
+        weight_decay: 1                             # A penalty for complex models, keeps the weights small to prevent overfitting
+        gradient_acc_steps: 4                       # Accumulates gradients over 4 steps before updating; Simulates higher batch size
+    optimizer: "adamW"                              # Updating the weights
+    scheduler: "linear"                             # Decrease learning rate linearly as training progresses
+    loss: "crossEntropy"                            # Loss function (how "wrong" is the model)
+    mixed_precision: True                           # Uses 16-bit math instead of 32-bit; Runs faster on modern GPUs

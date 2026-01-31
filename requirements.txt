@@ -1,0 +1,10 @@
+# PyTorch and related packages for CUDA 12.1
+# Install with: pip install -r requirements.txt
+torch
+torchvision
+torchaudio
+
+# Additional dependencies
+numpy
+pillow
+pyaml
